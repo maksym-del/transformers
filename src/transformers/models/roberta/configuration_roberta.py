@@ -62,10 +62,19 @@ class RobertaConfig(BertConfig):
     ```"""
     model_type = "roberta"
 
-    def __init__(self, pad_token_id=1, bos_token_id=0, eos_token_id=2, scale_basic=True, **kwargs):
+    def __init__(self, 
+                 pad_token_id=1, 
+                 bos_token_id=0, 
+                 eos_token_id=2, 
+                 scale_post=True, 
+                 scale_pre=False,
+                 **kwargs):
         """Constructs RobertaConfig."""
         super().__init__(pad_token_id=pad_token_id, bos_token_id=bos_token_id, eos_token_id=eos_token_id, **kwargs)
-        self.scale_basic = scale_basic
+        self.scale_post = scale_post
+        self.scale_pre = scale_pre
+        if scale_post:
+            assert not scale_pre
 
 
 class RobertaOnnxConfig(OnnxConfig):

@@ -83,7 +83,7 @@ class RobertaEmbeddings(nn.Module):
         # self.LayerNorm is not snake-cased to stick with TensorFlow model variable name and be able to load
         # any TensorFlow checkpoint file
 
-        self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_basic else None
+        self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_post else None
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         # position_ids (1, len position emb) is contiguous in memory and exported when serialized
         self.position_embedding_type = getattr(config, "position_embedding_type", "absolute")
@@ -188,6 +188,9 @@ class RobertaSelfAttention(nn.Module):
 
         self.is_decoder = config.is_decoder
 
+        self.LayerNormPre = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_pre else None
+
+
     def transpose_for_scores(self, x):
         new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
         x = x.view(new_x_shape)
@@ -203,6 +206,10 @@ class RobertaSelfAttention(nn.Module):
         past_key_value: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
         output_attentions: Optional[bool] = False,
     ) -> Tuple[torch.Tensor]:
+
+        if self.LayerNormPre is not None:
+            hidden_states = self.LayerNormPre(hidden_states)
+
         mixed_query_layer = self.query(hidden_states)
 
         # If this is instantiated as a cross-attention module, the keys
@@ -293,16 +300,17 @@ class RobertaSelfOutput(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_basic else None
+        self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_post else None
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
     def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor) -> torch.Tensor:
         hidden_states = self.dense(hidden_states)
         hidden_states = self.dropout(hidden_states)
+        hidden_states = hidden_states + input_tensor
+
         if self.LayerNorm is not None:
-            hidden_states = self.LayerNorm(hidden_states + input_tensor)
-        else:
-            hidden_states = hidden_states + input_tensor
+            hidden_states = self.LayerNorm(hidden_states)
+            
         return hidden_states
 
 
@@ -377,16 +385,21 @@ class RobertaOutput(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.dense = nn.Linear(config.intermediate_size, config.hidden_size)
-        self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_basic else None
+        self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_post else None
+        self.LayerNormPre = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_pre else None
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
     def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor) -> torch.Tensor:
+        if self.LayerNormPre is not None:
+            hidden_states = self.LayerNormPre(hidden_states)
+
         hidden_states = self.dense(hidden_states)
         hidden_states = self.dropout(hidden_states)
+        hidden_states = hidden_states + input_tensor
+
         if self.LayerNorm is not None:
-            hidden_states = self.LayerNorm(hidden_states + input_tensor)
-        else:
-            hidden_states = hidden_states + input_tensor
+            hidden_states = self.LayerNorm(hidden_states)
+        
         return hidden_states
 
 
@@ -1142,7 +1155,7 @@ class RobertaLMHead(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        self.layer_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_basic else None
+        self.layer_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_post else None
 
         self.decoder = nn.Linear(config.hidden_size, config.vocab_size)
         self.bias = nn.Parameter(torch.zeros(config.vocab_size))
