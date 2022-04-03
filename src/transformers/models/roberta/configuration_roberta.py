@@ -68,14 +68,23 @@ class RobertaConfig(BertConfig):
                  eos_token_id=2, 
                  scale_post=True, 
                  scale_pre=False,
+                 scale_attn=False,
+                 scale_fc=False,
+                 scale_heads=False,
+                 scale_resids=False,
                  **kwargs):
         """Constructs RobertaConfig."""
         super().__init__(pad_token_id=pad_token_id, bos_token_id=bos_token_id, eos_token_id=eos_token_id, **kwargs)
+        
         self.scale_post = scale_post
         self.scale_pre = scale_pre
         if scale_post:
             assert not scale_pre
 
+        self.scale_attn = scale_attn
+        self.scale_fc = scale_fc
+        self.scale_heads = scale_heads
+        self.scale_resids = scale_resids
 
 class RobertaOnnxConfig(OnnxConfig):
     @property
