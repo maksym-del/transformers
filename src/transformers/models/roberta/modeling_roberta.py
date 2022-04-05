@@ -397,8 +397,13 @@ class RobertaIntermediate(nn.Module):
             self.intermediate_act_fn = config.hidden_act
         
         self.LayerNormFc = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_fc else None
+        self.LayerNormPre = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_pre else None
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
+
+        if self.LayerNormPre is not None:
+            hidden_states = self.LayerNormPre(hidden_states)
+
         hidden_states = self.dense(hidden_states)
         hidden_states = self.intermediate_act_fn(hidden_states)
 
@@ -414,7 +419,6 @@ class RobertaOutput(nn.Module):
         super().__init__()
         self.dense = nn.Linear(config.intermediate_size, config.hidden_size)
         self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_post else None
-        self.LayerNormPre = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_pre else None
         
         self.w_resid = (
             nn.Parameter(
@@ -430,8 +434,6 @@ class RobertaOutput(nn.Module):
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
     def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor) -> torch.Tensor:
-        if self.LayerNormPre is not None:
-            hidden_states = self.LayerNormPre(hidden_states)
 
         hidden_states = self.dense(hidden_states)
         hidden_states = self.dropout(hidden_states)
