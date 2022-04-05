@@ -4,7 +4,7 @@ from datasets.utils.file_utils import DownloadConfig
 # langs = ["et", "lv", "lt", "uk", "pl", "fr", "en", "bg"] 
 
 # langs = ["et", "fr", "bg", "en"] # 25000000
-# lines_per_lang = 25000000 # to factor out data inbalance issue 
+# lines_per_lang = 15000000 # to factor out data inbalance issue 
 # valid_fraq = 0.0001
 
 langs = ["et", "fr", "lv"] # 25000000

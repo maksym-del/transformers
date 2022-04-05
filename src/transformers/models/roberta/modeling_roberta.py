@@ -304,7 +304,7 @@ class RobertaSelfOutput(nn.Module):
         
         self.hidden_size = config.hidden_size
         self.nh = config.num_attention_heads
-        self.head_dim = self.hidden_size / self.nh 
+        self.head_dim = int(self.hidden_size / self.nh)
 
         self.c_attn = (
             nn.Parameter(torch.ones((self.nh,)), requires_grad=True)
@@ -396,7 +396,7 @@ class RobertaIntermediate(nn.Module):
         else:
             self.intermediate_act_fn = config.hidden_act
         
-        self.LayerNormFc = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_fc else None
+        self.LayerNormFc = nn.LayerNorm(config.intermediate_size, eps=config.layer_norm_eps) if config.scale_fc else None
         self.LayerNormPre = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps) if config.scale_pre else None
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
