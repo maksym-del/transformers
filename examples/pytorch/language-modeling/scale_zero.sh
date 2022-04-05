@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #The name of the job is train
-#SBATCH -J normformer
+#SBATCH -J zero
 
 #The job requires 1 compute node
 #SBATCH -N 1
@@ -18,9 +18,7 @@
 #SBATCH --gres=gpu:a100-80g:2
 
 
-# TODO: add sbatch commands
 # TODO: check logging, saving
-# TODO: SET BS AND LR
 
 module load any/python/3.8.3-conda
 module load cuda/11.3.1
@@ -29,28 +27,32 @@ source activate paper3
 wandb login
 
 export WANDB_PROJECT=multilingual_normformer
-export WANDB_WATCH=all
+# export WANDB_WATCH=all
 
 BDIR=/gpfs/space/home/maksym95/third-paper
 CDIR=/gpfs/space/projects/nlpgroup/hf_cache
 
 cd $BDIR/transformers/examples/pytorch/language-modeling/
 
-DATASET_PATH=$BDIR/saved_datasets/shuf-et_fr_lv-75000
-TOKENIZER_PATH=$BDIR/saved_tokenizers/xlm-roberta-base-shuf-et_fr_lv-75000
+DATASET_PATH=$BDIR/saved_datasets/shuf-et_fr_bg_en-60000000
+TOKENIZER_PATH=$BDIR/saved_tokenizers/xlm-roberta-base-shuf-et_fr_bg_en-60000000
 
-RUN_NAME=scale_pre
+RUN_NAME=scale_zero
 OUT_DIR=$BDIR/saved_models/$RUN_NAME
 
 LR=1e-3
 BS=700
-GACC=6
+GACC=6 
 NUM_GPUS=2
+
+# 6808 updates is one epoch 
+# 1702 is 0.25 of epoch
 
 python -m torch.distributed.launch --nproc_per_node=$NUM_GPUS \
     run_mlm.py \
         --model_type xlm-roberta \
         --dataset_path $DATASET_PATH \
+        --tokenized_dataset_path ${DATASET_PATH}_tok \
         --tokenizer_name $TOKENIZER_PATH \
         --cache_dir $CDIR \
         --per_device_train_batch_size $BS \
@@ -59,14 +61,14 @@ python -m torch.distributed.launch --nproc_per_node=$NUM_GPUS \
         --gradient_accumulation_steps $GACC \
         --do_train \
         --do_eval \
-        --evaluation_strategy epoch \
-        --num_train_epochs 200 \
-        --logging_strategy steps \
-        --logging_steps 1 \
-        --logging_first_step \
+        --evaluation_strategy steps \
+        --eval_steps 1702 \
         --save_strategy epoch \
+        --save_steps 1702 \
+        --num_train_epochs 15 \
+        --logging_strategy steps \
+        --logging_steps 50 \
         --logging_first_step \
-        --save_steps 500000 \
         --seed 42 \
         --fp16 \
         --output_dir $OUT_DIR \
@@ -74,9 +76,10 @@ python -m torch.distributed.launch --nproc_per_node=$NUM_GPUS \
         --pad_to_max_length \
         --learning_rate $LR \
         --config_overrides="scale_post=False,scale_pre=False,scale_fc=False,scale_attn=False,scale_heads=False,scale_resids=False" \
-        --overwrite_output_dir \
         --report_to all \
-        --run_name test_run \
+        --run_name $RUN_NAME \
+        --overwrite_output_dir
+
 
 
 

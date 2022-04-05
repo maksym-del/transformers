@@ -123,10 +123,11 @@ class DataTrainingArguments:
     """
     Arguments pertaining to what data we are going to input our model for training and eval.
     """
-
-
     dataset_path: Optional[str] = field(
         default=None, metadata={"help": "The path of the HF dataset in disk."}
+    )
+    tokenized_dataset_path: Optional[str] = field(
+        default=None, metadata={"help": "The path of the tokenized HF dataset in disk of avaiable."}
     )
     dataset_name: Optional[str] = field(
         default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
@@ -393,7 +394,9 @@ def main():
             )
         max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
 
-    if data_args.line_by_line:
+    if data_args.tokenized_dataset_path is not None:
+        tokenized_datasets = load_from_disk(data_args.tokenized_dataset_path)
+    elif data_args.line_by_line:
         # When using line_by_line, we just tokenize each nonempty line.
         padding = "max_length" if data_args.pad_to_max_length else False
 
@@ -470,6 +473,9 @@ def main():
                 load_from_cache_file=not data_args.overwrite_cache,
                 desc=f"Grouping texts in chunks of {max_seq_length}",
             )
+    
+    if data_args.tokenized_dataset_path is None and not os.path.exists(f"{data_args.dataset_path}_tok"):
+        tokenized_datasets.save_to_disk(f"{data_args.dataset_path}_tok") #save tokenized version
 
     if training_args.do_train:
         if "train" not in tokenized_datasets:

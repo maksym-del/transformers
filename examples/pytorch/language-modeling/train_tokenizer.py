@@ -3,7 +3,7 @@ from datasets import load_from_disk
 
 
 projdir = "/gpfs/space/home/maksym95/third-paper"
-dsetname = "shuf-et_fr_lv-75000"
+dsetname = "shuf-et_fr_bg_en-60000000"
 dataset_path = f"{projdir}/saved_datasets/{dsetname}"
 modelname = "xlm-roberta-base"
 
