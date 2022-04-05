@@ -40,15 +40,15 @@ TOKENIZER_PATH=$BDIR/saved_tokenizers/xlm-roberta-base-shuf-et_fr_bg_en-60000000
 RUN_NAME=scale_zero
 OUT_DIR=$BDIR/saved_models/$RUN_NAME
 
-LR=1e-3
-BS=700
-GACC=6 
+LR=1e-4
+BS=1100
+GACC=1 
 NUM_GPUS=2
 
 # 6808 updates is one epoch 
 # 1702 is 0.25 of epoch
 
-python -m torch.distributed.launch --nproc_per_node=$NUM_GPUS --master_port=9501 \
+python -m torch.distributed.launch --nproc_per_node=$NUM_GPUS --master_port=950 \
     run_mlm.py \
         --model_type xlm-roberta \
         --dataset_path $DATASET_PATH \
@@ -61,11 +61,11 @@ python -m torch.distributed.launch --nproc_per_node=$NUM_GPUS --master_port=9501
         --gradient_accumulation_steps $GACC \
         --do_train \
         --do_eval \
-        --evaluation_strategy steps \
-        --eval_steps 1702 \
+        --evaluation_strategy epoch \
+        --eval_steps 5719 \
         --save_strategy epoch \
-        --save_steps 1702 \
-        --num_train_epochs 15 \
+        --save_steps 5719 \
+        --num_train_epochs 14 \
         --logging_strategy steps \
         --logging_steps 50 \
         --logging_first_step \
@@ -78,6 +78,8 @@ python -m torch.distributed.launch --nproc_per_node=$NUM_GPUS --master_port=9501
         --config_overrides="scale_post=False,scale_pre=False,scale_fc=False,scale_attn=False,scale_heads=False,scale_resids=False" \
         --report_to all \
         --run_name $RUN_NAME \
+        --lr_scheduler_type linear \
+        --warmup_steps 0 \
         --overwrite_output_dir
 
 
