@@ -1,6 +1,7 @@
 # Initially taken from Github's Python gitignore file
 
 examples/pytorch/language-modeling/wandb
+examples/pytorch/language-modeling/slurm*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
