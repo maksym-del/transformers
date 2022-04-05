@@ -48,7 +48,7 @@ NUM_GPUS=2
 # 6808 updates is one epoch 
 # 1702 is 0.25 of epoch
 
-python -m torch.distributed.launch --nproc_per_node=$NUM_GPUS --master_port=950 \
+python -m torch.distributed.launch --nproc_per_node=$NUM_GPUS --master_port=9502 \
     run_mlm.py \
         --model_type xlm-roberta \
         --dataset_path $DATASET_PATH \
