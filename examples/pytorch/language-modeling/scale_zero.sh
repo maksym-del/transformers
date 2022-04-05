@@ -41,7 +41,7 @@ RUN_NAME=scale_zero
 OUT_DIR=$BDIR/saved_models/$RUN_NAME
 
 LR=1e-4
-BS=1100
+BS=750
 GACC=1 
 NUM_GPUS=2
 
