@@ -30,7 +30,7 @@ from itertools import chain
 from typing import Optional
 
 import datasets
-from datasets import load_dataset, load_metric, load_from_disk
+from datasets import load_dataset, load_metric
 
 import transformers
 from transformers import (
@@ -123,12 +123,7 @@ class DataTrainingArguments:
     """
     Arguments pertaining to what data we are going to input our model for training and eval.
     """
-    dataset_path: Optional[str] = field(
-        default=None, metadata={"help": "The path of the HF dataset in disk."}
-    )
-    tokenized_dataset_path: Optional[str] = field(
-        default=None, metadata={"help": "The path of the tokenized HF dataset in disk of avaiable."}
-    )
+
     dataset_name: Optional[str] = field(
         default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
     )
@@ -190,7 +185,7 @@ class DataTrainingArguments:
     )
 
     def __post_init__(self):
-        if self.dataset_path is None and self.dataset_name is None and self.train_file is None and self.validation_file is None:
+        if self.dataset_name is None and self.train_file is None and self.validation_file is None:
             raise ValueError("Need either a dataset name or a training/validation file.")
         else:
             if self.train_file is not None:
@@ -265,11 +260,7 @@ def main():
     #
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
-    if data_args.dataset_path is not None:
-        raw_datasets = load_from_disk(data_args.dataset_path)
-        assert "validation" in raw_datasets.keys()
-
-    elif data_args.dataset_name is not None:
+    if data_args.dataset_name is not None:
         # Downloading and loading a dataset from the hub.
         raw_datasets = load_dataset(
             data_args.dataset_name,
@@ -406,9 +397,7 @@ def main():
             )
         max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
 
-    if data_args.tokenized_dataset_path is not None:
-        tokenized_datasets = load_from_disk(data_args.tokenized_dataset_path)
-    elif data_args.line_by_line:
+    if data_args.line_by_line:
         # When using line_by_line, we just tokenize each nonempty line.
         padding = "max_length" if data_args.pad_to_max_length else False
 
@@ -432,7 +421,7 @@ def main():
                 tokenize_function,
                 batched=True,
                 num_proc=data_args.preprocessing_num_workers,
-                remove_columns=column_names,
+                remove_columns=[text_column_name],
                 load_from_cache_file=not data_args.overwrite_cache,
                 desc="Running tokenizer on dataset line_by_line",
             )
@@ -485,9 +474,6 @@ def main():
                 load_from_cache_file=not data_args.overwrite_cache,
                 desc=f"Grouping texts in chunks of {max_seq_length}",
             )
-    
-    if data_args.tokenized_dataset_path is None and not os.path.exists(f"{data_args.dataset_path}_tok"):
-        tokenized_datasets.save_to_disk(f"{data_args.dataset_path}_tok") #save tokenized version
 
     if training_args.do_train:
         if "train" not in tokenized_datasets:
